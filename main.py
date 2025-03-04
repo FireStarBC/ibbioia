@@ -125,9 +125,6 @@ def run_multiple_simulations(num_trials=10, duration=60, dt=1, exercise_profile=
 
 
 if __name__ == '__main__':
-    # Define an exercise profile:
-    # For example, no exercise for the first 20 minutes then an exercise level of 6 (on a 0-10 scale) thereafter.
-
     # Run multiple simulations
     multi_trial_results = run_multiple_simulations(10)
 
