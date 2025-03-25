@@ -1,0 +1,50 @@
+import pandas as pd
+import statsmodels.api as sm
+
+df = pd.read_csv("/content/ib bio raw data - Compiled averages.csv")
+
+new_columns = []
+for col in df.columns:
+    if " avg Saturation" in col:
+        new_col = col.replace(" avg Saturation", "_avg")
+    elif " saturation stdev" in col:
+        new_col = col.replace(" saturation stdev", "_stdev")
+    else:
+        new_col = col
+    new_columns.append(new_col)
+df.columns = new_columns
+
+long_df = pd.melt(
+    df,
+    id_vars=["time"],
+    value_vars=[col for col in df.columns if "avg" in col or "stdev" in col],
+    var_name="MET_stat",
+    value_name="value"
+)
+
+# Split MET and stat (avg/stdev)
+long_df[["MET", "stat"]] = long_df["MET_stat"].str.extract(r'(t\d+)_(avg|stdev)')
+long_df = long_df.pivot_table(
+    index=["time", "MET"],
+    columns="stat",
+    values="value"
+).reset_index()
+
+MET_mapping = {"t1": 1, "t2": 3, "t3": 5, "t4": 7, "t5": 9, "t6": 11}
+long_df["MET"] = long_df["MET"].map(MET_mapping)
+
+long_df.columns = ["time", "MET", "avg_saturation", "stdev"]
+long_df["weight"] = 1 / (long_df["stdev"]) ** 2
+
+print(long_df.head())
+
+
+import statsmodels.api as sm
+
+# Define predictors 
+X = sm.add_constant(long_df[["MET", "time"]])
+y = long_df["avg_saturation"]
+weights = long_df["weight"]
+
+model = sm.WLS(y, X, weights=weights).fit()
+print(model.summary())
